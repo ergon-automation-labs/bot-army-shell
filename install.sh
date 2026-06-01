@@ -6,7 +6,7 @@
 #
 # This script:
 #   1. Creates ~/.config/bot-army-shell directory
-#   2. Copies shell plugin files
+#   2. Copies all shell plugin files
 #   3. Makes Ghostty title command and menu executable
 #   4. Prints instructions for ~/.zshrc and ghostty config
 
@@ -20,15 +20,14 @@ echo "Installing Bot Army Shell..."
 # Create config directory
 mkdir -p "$CONFIG_DIR"
 
-# Copy shell plugin
+# Copy shell plugins
 cp "$SCRIPT_DIR/bot-army-context.zsh" "$CONFIG_DIR/"
-
-# Copy Ghostty title command
 cp "$SCRIPT_DIR/bot-army-context-title" "$CONFIG_DIR/"
-chmod +x "$CONFIG_DIR/bot-army-context-title"
-
-# Copy Ghostty menu
 cp "$SCRIPT_DIR/bot-army-ghostty-menu" "$CONFIG_DIR/"
+cp "$SCRIPT_DIR/bot-army-status-bar.zsh" "$CONFIG_DIR/"
+cp "$SCRIPT_DIR/bot-army-magic-commands.zsh" "$CONFIG_DIR/"
+cp "$SCRIPT_DIR/bot-army-intent-recognizer.zsh" "$CONFIG_DIR/"
+chmod +x "$CONFIG_DIR/bot-army-context-title"
 chmod +x "$CONFIG_DIR/bot-army-ghostty-menu"
 
 # Create help file
@@ -67,6 +66,12 @@ Key Sequences (Leader: Ctrl+B):
   N      → NATS CLI
   L      → Log tail
 
+Magic Commands (shell):
+  !open    - Open task, project, docs, related
+  !schedule - Schedule tasks, meetings, timers
+  !find    - Search across Bot Army
+  !status  - Full system status
+
 For full documentation, visit:
 https://github.com/ergon-automation-labs/bot-army-shell
 EOF
@@ -77,7 +82,10 @@ echo ""
 echo "=== Add to ~/.zshrc ==="
 echo ""
 echo "source $CONFIG_DIR/bot-army-context.zsh"
-echo "RPROMPT+='\$$(bot_army_context_prompt)'"
+echo "source $CONFIG_DIR/bot-army-status-bar.zsh"
+echo "source $CONFIG_DIR/bot-army-magic-commands.zsh"
+echo "source $CONFIG_DIR/bot-army-intent-recognizer.zsh"
+echo "RPROMPT+='\$$(bot_army_status_bar)'"
 echo ""
 echo "=== Add to ~/.config/ghostty/config ==="
 echo ""
@@ -89,6 +97,6 @@ echo ""
 echo "=== Quick Start in Ghostty ==="
 echo "1. Press Ctrl+B (leader key)"
 echo "2. Press M (menu) to see all options"
-echo "3. Or use direct bindings like Ctrl+B+T for current task"
+echo "3. Or use !open, !find, !schedule commands"
 echo ""
 echo "Or use systemd (see docs/SYSTEMD.md)"

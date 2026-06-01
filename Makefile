@@ -28,6 +28,9 @@ install:
 	@cp scripts/bot-army-context.zsh ~/.config/bot-army-shell/
 	@cp scripts/bot-army-context-title ~/.config/bot-army-shell/
 	@cp scripts/bot-army-ghostty-menu ~/.config/bot-army-shell/
+	@cp scripts/bot-army-status-bar.zsh ~/.config/bot-army-shell/
+	@cp scripts/bot-army-magic-commands.zsh ~/.config/bot-army-shell/
+	@cp scripts/bot-army-intent-recognizer.zsh ~/.config/bot-army-shell/
 	@chmod +x ~/.config/bot-army-shell/bot-army-context-title
 	@chmod +x ~/.config/bot-army-shell/bot-army-ghostty-menu
 	@echo ""
@@ -35,7 +38,10 @@ install:
 	@echo ""
 	@echo "Add to ~/.zshrc:"
 	@echo "  source ~/.config/bot-army-shell/bot-army-context.zsh"
-	@echo "  RPROMPT+='\$$(bot_army_context_prompt)'"
+	@echo "  source ~/.config/bot-army-shell/bot-army-status-bar.zsh"
+	@echo "  source ~/.config/bot-army-shell/bot-army-magic-commands.zsh"
+	@echo "  source ~/.config/bot-army-shell/bot-army-intent-recognizer.zsh"
+	@echo "  RPROMPT+='\$$(bot_army_status_bar)'"
 	@echo ""
 	@echo "For Ghostty, add to ~/.config/ghostty/config:"
 	@echo "  title-command = ~/.config/bot-army-shell/bot-army-context-title"
@@ -46,7 +52,7 @@ install:
 	@echo "Quick start in Ghostty:"
 	@echo "  1. Press Ctrl+B (leader key)"
 	@echo "  2. Press M (menu) to see all options"
-	@echo "  3. Or use Ctrl+B+T for current task"
+	@echo "  3. Or use !open, !find, !schedule commands"
 
 uninstall:
 	@echo "Uninstalling Bot Army Shell..."
