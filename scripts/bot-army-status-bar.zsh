@@ -10,7 +10,8 @@ _BOT_ARMY_STATUS_CACHE_TTL=10  # seconds
 
 # Get comprehensive system status
 _bot_army_get_status() {
-  local now=$EPOCHSECONDS
+  local now
+  now=$EPOCHREALTIME
 
   # Return cached data if still fresh
   if (( now - _BOT_ARMY_STATUS_CACHE_TIME < _BOT_ARMY_STATUS_CACHE_TTL )) &&
@@ -19,16 +20,18 @@ _bot_army_get_status() {
     return 0
   fi
 
-  local status=""
   local context_json
 
   # Get context from daemon or fallback
+  # Only source if the function is not already defined (avoid recursive sourcing)
   if [[ -f ~/.config/bot-army-shell/bot-army-context.zsh ]]; then
-    source ~/.config/bot-army-shell/bot-army-context.zsh
-    context_json=$(_bot_army_context_get)
-  else
-    context_json=$(_bot_army_context_get_fallback)
+    if ! typeset -f _bot_army_context_get >/dev/null 2>&1; then
+      source ~/.config/bot-army-shell/bot-army-context.zsh
+    fi
   fi
+  # Use the function (either already defined or just sourced)
+  local context_json
+  context_json=$(_bot_army_context_get)
 
   # Parse context
   local bot git_branch context_mode
@@ -95,12 +98,41 @@ _bot_army_get_status() {
   fi
 
   # Build status JSON
-  printf '{"bot":"%s","context_mode":"%s","git_branch":"%s","bot_health":"%s","pending_tasks":"%s","llm_status":"%s","nats_status":"%s","db_status":"%s"}' \
-    "$bot" "$context_mode" "$git_branch" "$bot_health" "$pending_tasks" "$llm_status" "$nats_status" "$db_status"
+  local status_result
+  status_result=$(printf '{"bot":"%s","context_mode":"%s","git_branch":"%s","bot_health":"%s","pending_tasks":"%s","llm_status":"%s","nats_status":"%s","db_status":"%s"}' \
+    "$bot" "$context_mode" "$git_branch" "$bot_health" "$pending_tasks" "$llm_status" "$nats_status" "$db_status")
 
   # Cache the result
-  _BOT_ARMY_STATUS_CACHE=("$status")
+  _BOT_ARMY_STATUS_CACHE=("$status_result")
   _BOT_ARMY_STATUS_CACHE_TIME=$now
+
+  # Return the result
+  printf '%s' "$status_result"
+}
+
+# Check for git file status via context daemon
+_bot_army_check_file_status() {
+  local socket="${BOT_ARMY_CONTEXT_SOCKET:-/tmp/bot-army-context.sock}"
+
+  # Only query if socket exists
+  if [[ ! -S "$socket" ]]; then
+    return 1
+  fi
+
+  # Query for file status using nc or socat
+  local file_status
+  if command -v nc >/dev/null 2>&1; then
+    file_status=$(printf 'file_status' | nc -U "$socket" 2>/dev/null)
+  elif command -v socat >/dev/null 2>&1; then
+    file_status=$(printf 'file_status' | socat - UNIX-CONNECT:"$socket" 2>/dev/null)
+  fi
+
+  if [[ -n "$file_status" ]]; then
+    echo "$file_status"
+    return 0
+  fi
+
+  return 1
 }
 
 # Format status for prompt (single line)
@@ -146,6 +178,25 @@ bot_army_status_bar() {
   # Bot health
   if [[ -n "$bot_health" && "$bot_health" != "?" ]]; then
     parts+=("$bot_health")
+  fi
+
+  # Check for git file status
+  local file_status
+  if command -v jq >/dev/null 2>&1; then
+    # Try to get file status from context daemon
+    local file_status_json
+    file_status_json=$(_bot_army_check_file_status 2>/dev/null)
+    if [[ -n "$file_status_json" ]]; then
+      local file_total
+      file_total=$(echo "$file_status_json" | jq -r '.total // 0' 2>/dev/null)
+      if [[ "$file_total" -gt 0 ]]; then
+        local file_icon="●"
+        if [[ "$file_total" -gt 5 ]]; then
+          file_icon="●●●"
+        fi
+        parts+=("$file_icon $file_total files")
+      fi
+    fi
   fi
 
   if [[ ${#parts[@]} -gt 0 ]]; then

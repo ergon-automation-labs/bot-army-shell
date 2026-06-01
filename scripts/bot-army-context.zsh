@@ -39,7 +39,8 @@ _bot_army_context_query_daemon() {
 
 # Get context data, using cache if available and fresh
 _bot_army_context_get() {
-  local now=$EPOCHSECONDS
+  local now
+  now=$EPOCHREALTIME
 
   # Return cached data if still fresh
   if (( now - _BOT_ARMY_CONTEXT_CACHE_TIME < _BOT_ARMY_CONTEXT_CACHE_TTL )) &&
@@ -103,13 +104,29 @@ _bot_army_context_prompt() {
     git_branch=$(echo "$context_json" | jq -r '.git_branch // empty' 2>/dev/null)
     context_mode=$(echo "$context_json" | jq -r '.context_mode // empty' 2>/dev/null)
 
+    # Check for file status (git changes)
+    local file_status_total
+    file_status_total=$(echo "$context_json" | jq -r '.file_status.total // 0' 2>/dev/null)
+
     local parts=()
     [[ -n "$bot" ]] && parts+=("[${bot}]")
     [[ -n "$git_branch" ]] && parts+=("(${git_branch})")
     [[ -n "$context_mode" && "$context_mode" != "unknown" ]] && parts+=("${context_mode}")
 
+    # Add file status indicator if there are changes (always show if changes exist)
+    if [[ "$file_status_total" -gt 0 ]]; then
+      local icon="●"
+      if [[ "$file_status_total" -gt 5 ]]; then
+        icon="●●●"
+      fi
+      parts+=("$icon $file_status_total files")
+    fi
+
+    # Always show something - if no parts, show file status if available
     if [[ ${#parts[@]} -gt 0 ]]; then
       printf '%s' "${parts[*]}"
+    elif [[ "$file_status_total" -gt 0 ]]; then
+      printf '%s' "● $file_status_total files"
     else
       printf ''
     fi

@@ -5,6 +5,7 @@ Terminal context awareness for Bot Army - shell prompt enhancements and Ghostty 
 ## Features
 
 - **Context-aware prompts** - Shows bot name, git branch, and current context mode
+- **Git file status detection** - Displays file change indicators when there are untracked/staged/unstaged files
 - **Ghostty title integration** - Auto-updates terminal tab/window titles
 - **Optional daemon** - NATS subscriber that tracks `context.state.current` for real-time updates
 
@@ -22,7 +23,7 @@ Add to `~/.zshrc`:
 
 ```zsh
 source ~/.config/bot-army-shell/bot-army-context.zsh
-RPROMPT+='$(bot_army_context_prompt)'
+RPROMPT+='$(_bot_army_context_prompt)'
 ```
 
 ### Ghostty Configuration
@@ -39,7 +40,7 @@ title-command = ~/.config/bot-army-shell/bot-army-context-title
 ┌─────────────────────────────────────────────┐
 │          Shell (zsh)                        │
 │                                             │
-│  prompt = $(bot_army_context_prompt)       │
+│  prompt = $(_bot_army_context_prompt)       │
 │  title  = bot_army_context_title           │
 │                                             │
 └──────────────────┬──────────────────────────┘
@@ -49,8 +50,10 @@ title-command = ~/.config/bot-army-shell/bot-army-context-title
 │       Context Daemon (optional)             │
 │                                             │
 │  - Subscribes to context.state.current      │
+│  - Subscribes to context.signal.filewatcher │
 │  - Serves via Unix socket                   │
 │  - Tracks PWD for bot detection             │
+│  - Queries filewatcher for git status       │
 │                                             │
 └──────────────────┬──────────────────────────┘
                    │ Query socket
@@ -60,10 +63,39 @@ title-command = ~/.config/bot-army-shell/bot-army-context-title
 │                                             │
 │  - Directory-based (bot_army_*)            │
 │  - Git branch detection                     │
+│  - File status detection (git status)       │
 │  - Default "unknown" mode                   │
 │                                             │
 └─────────────────────────────────────────────┘
 ```
+
+## File Status Display
+
+The shell prompt (via `bot_army_context_prompt`) and status bar (via `bot_army_status_bar`) show file change indicators when git changes are detected:
+
+| Icon | Meaning |
+|------|---------|
+| `●` | Some files changed (1-5) |
+| `●●●` | Multiple files changed (6+) |
+
+Example prompt:
+```
+[gtd] (main) ● 3 files
+```
+
+When there are no changes, the prompt shows only the context information:
+```
+[gtd] (main) focused
+```
+
+## Quick Reference
+
+| Function | Usage | Description |
+|----------|-------|-------------|
+| `bot_army_context_prompt` | `RPROMPT+='$(bot_army_context_prompt)'` | Shows bot, branch, and file status |
+| `bot_army_status_bar` | `RPROMPT+='$(_bot_army_status_bar)'` | Shows system status with file indicators |
+
+**Note**: In zsh, use `$(function_name)` for command substitution, not `$function_name`. The latter tries to expand a variable named `function_name`.
 
 ## Components
 
@@ -104,15 +136,15 @@ bot-army-shell/
 │   └── bot-army-context/           # Go daemon
 │       └── main.go
 ├── scripts/
-│   ├── bot-army-context.zsh        # Zsh plugin
-│   └── bot-army-context-title      # Ghostty title command
+│   ├── bot-army-context.zsh        # Zsh context plugin
+│   ├── bot-army-context-title      # Ghostty title command
+│   ├── bot-army-status-bar.zsh     # Zsh status bar plugin
+│   ├── bot-army-magic-commands.zsh # Magic commands (!open, etc.)
+│   └── bot-army-intent-recognizer.zsh # Intent recognition
 ├── internal/
 │   └── daemon/                     # Daemon implementation
-│       └── nats.go
 ├── docs/
-│   └── ARCHITECTURE.md
 ├── config/
-│   └── default.yaml                # Daemon config
 ├── Makefile
 └── install.sh
 ```

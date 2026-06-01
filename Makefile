@@ -41,7 +41,6 @@ install:
 	@echo "  source ~/.config/bot-army-shell/bot-army-status-bar.zsh"
 	@echo "  source ~/.config/bot-army-shell/bot-army-magic-commands.zsh"
 	@echo "  source ~/.config/bot-army-shell/bot-army-intent-recognizer.zsh"
-	@echo "  RPROMPT+='\$$(bot_army_status_bar)'"
 	@echo ""
 	@echo "For Ghostty, add to ~/.config/ghostty/config:"
 	@echo "  title-command = ~/.config/bot-army-shell/bot-army-context-title"
@@ -94,8 +93,10 @@ test:
 	@echo "Run 'make status' to see daemon status"
 
 run-daemon:
+	@echo "Building context daemon..."
+	@go build -o bot-army-context cmd/bot-army-context/main.go
 	@echo "Starting context daemon..."
-	@go run cmd/bot-army-context/main.go
+	@./bot-army-context
 
 stop-daemon:
 	@echo "Stopping context daemon..."
