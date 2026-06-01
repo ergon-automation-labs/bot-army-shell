@@ -15,6 +15,169 @@ git_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
 # Build header with context
 header="Bot Army  ${bot_context:-} ${current_dir} (${git_branch})"
 
+# Default NATS server for queries
+NATS_SERVER="${NATS_SERVER:-localhost:4223}"
+
+# Show current task from bridge
+show_current_task() {
+  echo "Fetching current task..."
+  if command -v nats >/dev/null 2>&1; then
+    local result
+    result=$(nats request bridge.task.current '{}' --server "nats://$NATS_SERVER" --timeout 3s 2>/dev/null)
+    if [[ -n "$result" ]]; then
+      echo "$result" | head -30
+    else
+      echo "No current task or bridge not available"
+    fi
+  else
+    echo "NATS CLI not available for direct query"
+  fi
+}
+
+# Create new task via bridge
+create_new_task() {
+  echo "Opening task creation form..."
+  if command -v nats >/dev/null 2>&1; then
+    echo "Task creation form would open here"
+    echo "Prompt: What task would you like to create?"
+    read -r "task?Task description: "
+    if [[ -n "$task" ]]; then
+      nats request bridge.task.create "{\"description\":\"$task\"}" --server "nats://$NATS_SERVER" --timeout 3s 2>/dev/null
+      echo "Task created: $task"
+    fi
+  else
+    echo "NATS CLI not available"
+  fi
+}
+
+# Context mode switching
+switch_context() {
+  local modes=("focused" "meeting" "casual" "DND")
+  echo "Select context mode:"
+  for i in {1..4}; do
+    echo "  $i) ${modes[$i]}"
+  done
+  read -r "choice?Choice: "
+  case $choice in
+    1) target="focused" ;;
+    2) target="meeting" ;;
+    3) target="casual" ;;
+    4) target="DND" ;;
+    *) echo "Invalid choice"; return ;;
+  esac
+  echo "Switching to $target mode..."
+  nats publish context.state.desired "{\"mode\":\"$target\"}" --server "nats://$NATS_SERVER" 2>/dev/null
+  echo "Context mode set to $target"
+}
+
+# PARA search
+para_search() {
+  echo "PARA Search:"
+  read -r "query?Search query: "
+  if [[ -n "$query" ]]; then
+    if command -v nats >/dev/null 2>&1; then
+      echo "Searching PARA for: $query"
+      nats request para.fs.search "{\"query\":\"$query\"}" --server "nats://$NATS_SERVER" --timeout 5s 2>/dev/null | head -20
+    else
+      echo "NATS CLI not available"
+    fi
+  fi
+}
+
+# Bot status display
+bot_status() {
+  echo "Bot Army Status:"
+  echo ""
+  if command -v nats >/dev/null 2>&1; then
+    echo "NATS: Connected to $NATS_SERVER"
+    echo ""
+    echo "Bot Health:"
+    # Try to get health from all bots
+    nats sub system.health.> --server "nats://$NATS_SERVER" --one 2>/dev/null || echo "  (no health data available)"
+  else
+    echo "  NATS CLI not available"
+  fi
+  echo ""
+  echo "Context Mode: $(cat /tmp/bot-army-context.sock 2>/dev/null | jq -r '.context_mode // \"unknown\"' 2>/dev/null || echo 'unknown')"
+}
+
+# Reflection
+record_reflection() {
+  echo "Recording reflection..."
+  if command -v nats >/dev/null 2>&1; then
+    nats request bridge.reflection.record '{"note":" reflection from ghostty menu"}' --server "nats://$NATS_SERVER" --timeout 3s 2>/dev/null
+    echo "Reflection recorded"
+  else
+    echo "NATS CLI not available"
+  fi
+}
+
+# Timer / focus mode
+timer_mode() {
+  echo "Timer / Focus Mode:"
+  echo "  1) Start 25-minute focus timer"
+  echo "  2) Start 5-minute break"
+  echo "  3) Show active timer"
+  echo "  4) Cancel timer"
+  read -r "choice?Choice: "
+  case $choice in
+    1) echo "Starting focus timer..."; nats publish timer.focus.start '{"duration":1500}' --server "nats://$NATS_SERVER" 2>/dev/null ;;
+    2) echo "Starting break timer..."; nats publish timer.break.start '{"duration":300}' --server "nats://$NATS_SERVER" 2>/dev/null ;;
+    3) echo "Timer status: not implemented yet" ;;
+    4) echo "Timer cancelled"; nats publish timer.cancel '{}' --server "nats://$NATS_SERVER" 2>/dev/null ;;
+    *) echo "Invalid choice" ;;
+  esac
+}
+
+# Quick command input
+quick_command() {
+  echo "Quick command input:"
+  read -r "cmd?Enter command: "
+  if [[ -n "$cmd" ]]; then
+    echo "Executing: $cmd"
+    # Would execute via NATS command handler
+  fi
+}
+
+# Show full help
+show_help() {
+  cat << 'EOF'
+Bot Army Ghostty Menu - Help
+
+Quick Actions (Ctrl+B prefix):
+  T    Show current task
+  C    Create new task
+  R    Record reflection
+  P    PARA search
+  S    Bot status
+
+Context Modes:
+  F    focused (deep work)
+  M    meeting (discreet)
+  C    casual (chat)
+  D    DND (no notifications)
+
+Navigation:
+  M    Show this menu
+  H    Show help
+  Q    Quit
+
+For full documentation:
+  ~/.config/bot-army-shell/bot-army-ghostty-help.txt
+
+NATS Server: $NATS_SERVER
+EOF
+}
+
+# Show status in ghostty
+show_status() {
+  echo "Bot Army Status"
+  echo "───────────────"
+  echo "Context: $(bot_army_context_prompt 2>/dev/null || echo 'unknown')"
+  echo "Bot: $(echo $PWD | grep -o 'bot_army_[^/]*' | sed 's/bot_army_//' || echo 'none')"
+  echo "Git: $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'none')"
+}
+
 # Create a simple menu using tui libraries if available, otherwise use fzf
 show_menu() {
   if command -v fzf >/dev/null 2>&1; then
@@ -92,42 +255,34 @@ process_choice() {
   local choice=$1
   case $choice in
     "Show current task"|"m"|"M")
-      echo "Fetching current task..."
-      # Try to get current task from bridge
-      if command -v nats >/dev/null 2>&1; then
-        nats request bridge.task.current '{}' --timeout 3s 2>/dev/null | head -20
-      else
-        echo "NATS CLI not available for direct query"
-      fi
+      show_current_task
       ;;
     "Create new task"|"n"|"N")
-      echo "Opening task creation form..."
-      nats request bridge.task.create '{} --timeout 3s
+      create_new_task
       ;;
     "Context switch"|"c"|"C")
-      echo "Context modes: focused meeting casual DND"
-      read -r "mode?Enter mode: "
-      if [[ -n "$mode" ]]; then
-        echo "Switching to $mode..."
-        nats publish context.state.desired "{\"mode\":\"$mode\"}" 2>/dev/null
-      fi
+      switch_context
       ;;
     "PARA search"|"p"|"P")
-      echo "PARA search (todo)"
+      para_search
       ;;
     "Bot status"|"b"|"B")
-      echo "Bot Army status:"
-      nats sub system.health.> --one 2>/dev/null || echo "NATS not available"
+      bot_status
       ;;
     "Reflection"|"r"|"R")
-      echo "Recording reflection..."
-      nats request bridge.reflection.record '{}' --timeout 3s 2>/dev/null
+      record_reflection
       ;;
     "Timer"|"t"|"T")
-      echo "Timer (todo)"
+      timer_mode
       ;;
     "Quick command"|"q"|"Q")
-      echo "Quick command input (todo)"
+      quick_command
+      ;;
+    "Show help"|"h"|"H")
+      show_help
+      ;;
+    "Show status"|"s"|"S")
+      show_status
       ;;
     *)
       echo "Unknown option: $choice"

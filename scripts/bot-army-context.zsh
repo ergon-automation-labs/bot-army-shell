@@ -170,6 +170,31 @@ bot_army_context_title() {
 # autoload -Uz add-zsh-hook
 # add-zsh-hook precmd bot_army_context_title
 
+# Status bar for bot army in prompt
+# Shows: bot name, context mode, git branch in a compact format
+bot_army_status() {
+  local context_json
+  context_json=$(_bot_army_context_get)
+
+  if command -v jq >/dev/null 2>&1 && [[ -n "$context_json" ]]; then
+    local bot context_mode
+    bot=$(echo "$context_json" | jq -r '.bot // ""' 2>/dev/null)
+    context_mode=$(echo "$context_json" | jq -r '.context_mode // ""' 2>/dev/null)
+
+    if [[ -n "$bot" ]]; then
+      # Format: [gtd] 🎯 focused or [para] 💼 meeting
+      local icon="💡"
+      case "$context_mode" in
+        focused) icon="🎯" ;;
+        meeting) icon="💼" ;;
+        casual) icon="💬" ;;
+        DND) icon="🚫" ;;
+      esac
+      echo "[$bot] $icon $context_mode"
+    fi
+  fi
+}
+
 # Test function to verify integration
 _bot_army_context_test() {
   echo "Testing Bot Army Context Integration..."
