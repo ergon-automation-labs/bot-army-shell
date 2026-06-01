@@ -16,13 +16,20 @@ help:
 	@echo "  make run-daemon    Start the context daemon"
 	@echo "  make stop-daemon   Stop the context daemon"
 	@echo ""
+	@echo "Ghostty Setup:"
+	@echo "  - Leader key: Ctrl+B"
+	@echo "  - Menu: Ctrl+B+M"
+	@echo "  - Quick tasks: Ctrl+B+T, Ctrl+B+C, etc."
+	@echo "  - See ~/.config/bot-army-shell/bot-army-ghostty-help.txt"
 
 install:
 	@echo "Installing Bot Army Shell..."
 	@mkdir -p ~/.config/bot-army-shell
 	@cp scripts/bot-army-context.zsh ~/.config/bot-army-shell/
 	@cp scripts/bot-army-context-title ~/.config/bot-army-shell/
+	@cp scripts/bot-army-ghostty-menu ~/.config/bot-army-shell/
 	@chmod +x ~/.config/bot-army-shell/bot-army-context-title
+	@chmod +x ~/.config/bot-army-shell/bot-army-ghostty-menu
 	@echo ""
 	@echo "Installed to ~/.config/bot-army-shell/"
 	@echo ""
@@ -32,9 +39,18 @@ install:
 	@echo ""
 	@echo "For Ghostty, add to ~/.config/ghostty/config:"
 	@echo "  title-command = ~/.config/bot-army-shell/bot-army-context-title"
+	@echo "  # Leader key for Bot Army commands"
+	@echo "  keybind = ctrl+b=ignore"
+	@echo "  keybind = ctrl+b+M=run:~/.config/bot-army-shell/bot-army-ghostty-menu"
+	@echo ""
+	@echo "Quick start in Ghostty:"
+	@echo "  1. Press Ctrl+B (leader key)"
+	@echo "  2. Press M (menu) to see all options"
+	@echo "  3. Or use Ctrl+B+T for current task"
 
 uninstall:
 	@echo "Uninstalling Bot Army Shell..."
+	@rm -rf ~/.config/bot-army-shell
 	@rm -rf ~/.config/bot-army-shell
 	@echo "Removed ~/.config/bot-army-shell"
 

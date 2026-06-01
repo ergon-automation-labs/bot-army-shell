@@ -1,0 +1,143 @@
+#!/usr/bin/env zsh
+# Bot Army Ghostty Menu - Overlay menu for Bot Army commands
+# Usage: ghostty calls this script via keybind
+
+# Source the context plugin for current context
+if [[ -f ~/.config/bot-army-shell/bot-army-context.zsh ]]; then
+  source ~/.config/bot-army-shell/bot-army-context.zsh
+fi
+
+# Get current context for display
+bot_context=$(bot_army_context_prompt 2>/dev/null)
+current_dir=$(basename "$PWD" 2>/dev/null)
+git_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+# Build header with context
+header="Bot Army  ${bot_context:-} ${current_dir} (${git_branch})"
+
+# Create a simple menu using tui libraries if available, otherwise use fzf
+show_menu() {
+  if command -v fzf >/dev/null 2>&1; then
+    show_menu_fzf
+  elif command -v bemenu >/dev/null 2>&1; then
+    show_menu_bemenu
+  elif command -v rofi >/dev/null 2>&1; then
+    show_menu_rofi
+  else
+    show_menu_terminal
+  fi
+}
+
+show_menu_fzf() {
+  local choice
+  choice=$(echo "$menu_options" | fzf --height=100% --layout=reverse --prompt="Bot Army> " --ansi --header="$header")
+  if [[ -n "$choice" ]]; then
+    process_choice "$choice"
+  fi
+}
+
+show_menu_bemenu() {
+  local choice
+  choice=$(echo "$menu_options" | bemenu -l 10 -p "Bot Army> " --ansi --parse-ephf)
+  if [[ -n "$choice" ]]; then
+    process_choice "$choice"
+  fi
+}
+
+show_menu_rofi() {
+  local choice
+  choice=$(echo "$menu_options" | rofi -dmenu -p "Bot Army> " -theme-str "listview {lines: 10;}")
+  if [[ -n "$choice" ]]; then
+    process_choice "$choice"
+  fi
+}
+
+show_menu_terminal() {
+  clear
+  echo "┌─────────────────────────────────────────────┐"
+  echo "│ $header"
+  echo "├─────────────────────────────────────────────┤"
+  echo "$menu_options_ansi"
+  echo "└─────────────────────────────────────────────┘"
+  echo ""
+  echo "Select an option (1-8) or press q to quit:"
+  read -r choice
+  case $choice in
+    1) process_choice "Show current task" ;;
+    2) process_choice "Create new task" ;;
+    3) process_choice "Context switch" ;;
+    4) process_choice "PARA search" ;;
+    5) process_choice "Bot status" ;;
+    6) process_choice "Reflection" ;;
+    7) process_choice "Timer" ;;
+    8) process_choice "Quick command" ;;
+    q|Q) exit 0 ;;
+    *) show_menu_terminal ;;
+  esac
+}
+
+# Menu options
+menu_options=$'[\x1b[36mM\x1b[0m] Show current task\n[\x1b[36mN\x1b[0m] Create new task\n[\x1b[36mC\x1b[0m] Context switch\n[\x1b[36mP\x1b[0m] PARA search\n[\x1b[36mB\x1b[0m] Bot status\n[\x1b[36mR\x1b[0m] Reflection\n[\x1b[36mT\x1b[0m] Timer / focus\n[\x1b[36mQ\x1b[0m] Quick command'
+
+menu_options_ansi=$'  M - Show current task
+  N - Create new task
+  C - Context switch
+  P - PARA search
+  B - Bot status
+  R - Reflection
+  T - Timer / focus
+  Q - Quick command'
+
+process_choice() {
+  local choice=$1
+  case $choice in
+    "Show current task"|"m"|"M")
+      echo "Fetching current task..."
+      # Try to get current task from bridge
+      if command -v nats >/dev/null 2>&1; then
+        nats request bridge.task.current '{}' --timeout 3s 2>/dev/null | head -20
+      else
+        echo "NATS CLI not available for direct query"
+      fi
+      ;;
+    "Create new task"|"n"|"N")
+      echo "Opening task creation form..."
+      nats request bridge.task.create '{} --timeout 3s
+      ;;
+    "Context switch"|"c"|"C")
+      echo "Context modes: focused meeting casual DND"
+      read -r "mode?Enter mode: "
+      if [[ -n "$mode" ]]; then
+        echo "Switching to $mode..."
+        nats publish context.state.desired "{\"mode\":\"$mode\"}" 2>/dev/null
+      fi
+      ;;
+    "PARA search"|"p"|"P")
+      echo "PARA search (todo)"
+      ;;
+    "Bot status"|"b"|"B")
+      echo "Bot Army status:"
+      nats sub system.health.> --one 2>/dev/null || echo "NATS not available"
+      ;;
+    "Reflection"|"r"|"R")
+      echo "Recording reflection..."
+      nats request bridge.reflection.record '{}' --timeout 3s 2>/dev/null
+      ;;
+    "Timer"|"t"|"T")
+      echo "Timer (todo)"
+      ;;
+    "Quick command"|"q"|"Q")
+      echo "Quick command input (todo)"
+      ;;
+    *)
+      echo "Unknown option: $choice"
+      ;;
+  esac
+  echo ""
+  echo "Press any key to return to menu..."
+  read -r -n1 -t 1
+  show_menu
+}
+
+# Run the menu
+show_menu

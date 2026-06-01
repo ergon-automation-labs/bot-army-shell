@@ -7,7 +7,7 @@
 # This script:
 #   1. Creates ~/.config/bot-army-shell directory
 #   2. Copies shell plugin files
-#   3. Makes Ghostty title command executable
+#   3. Makes Ghostty title command and menu executable
 #   4. Prints instructions for ~/.zshrc and ghostty config
 
 set -e
@@ -27,6 +27,50 @@ cp "$SCRIPT_DIR/bot-army-context.zsh" "$CONFIG_DIR/"
 cp "$SCRIPT_DIR/bot-army-context-title" "$CONFIG_DIR/"
 chmod +x "$CONFIG_DIR/bot-army-context-title"
 
+# Copy Ghostty menu
+cp "$SCRIPT_DIR/bot-army-ghostty-menu" "$CONFIG_DIR/"
+chmod +x "$CONFIG_DIR/bot-army-ghostty-menu"
+
+# Create help file
+cat > "$CONFIG_DIR/bot-army-ghostty-help.txt" << 'EOF'
+Bot Army Ghostty Menu
+
+Quick Start:
+  Ctrl+B  → Leader key (press first)
+  Ctrl+B+M → Show menu
+  Ctrl+B+T → Show current task
+  Ctrl+B+C → Create new task
+
+Menu Options:
+  M - Show current task       (bridge.task.current)
+  N - Create new task         (bridge.task.create)
+  C - Context switch          (change focus mode)
+  P - PARA search             (para.fs.search)
+  B - Bot status              (system.health.list)
+  R - Reflection              (bridge.reflection.record)
+  T - Timer / focus           (in development)
+  Q - Quick command           (in development)
+
+Key Sequences (Leader: Ctrl+B):
+  M / m  → Menu
+  T      → Show current task
+  C      → Create new task
+  R      → Record reflection
+  P      → PARA search
+  S      → Bot status
+  F      → Context: focused
+  M      → Context: meeting
+  C      → Context: casual
+  D      → Context: DND
+  H      → Show this help
+  I      → Current context info
+  N      → NATS CLI
+  L      → Log tail
+
+For full documentation, visit:
+https://github.com/ergon-automation-labs/bot-army-shell
+EOF
+
 echo ""
 echo "Installation complete!"
 echo ""
@@ -38,11 +82,13 @@ echo ""
 echo "=== Add to ~/.config/ghostty/config ==="
 echo ""
 echo "title-command = $CONFIG_DIR/bot-army-context-title"
+echo "# Leader key for Bot Army commands"
+echo "keybind = ctrl+b=ignore"
+echo "keybind = ctrl+b+M=run:$CONFIG_DIR/bot-army-ghostty-menu"
 echo ""
-echo "=== Optional: Run context daemon ==="
-echo ""
-echo "Makefile targets:"
-echo "  make daemon     # Start daemon"
-echo "  make daemon-stop # Stop daemon"
+echo "=== Quick Start in Ghostty ==="
+echo "1. Press Ctrl+B (leader key)"
+echo "2. Press M (menu) to see all options"
+echo "3. Or use direct bindings like Ctrl+B+T for current task"
 echo ""
 echo "Or use systemd (see docs/SYSTEMD.md)"

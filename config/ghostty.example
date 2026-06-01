@@ -1,0 +1,30 @@
+# Bot Army Ghostty Integration
+# Add to ~/.config/ghostty/config
+
+# Leader key for Bot Army commands (like vim)
+keybind = ctrl+b=ignore
+
+# Menu popup (using shell script)
+keybind = ctrl+b+m=run:~/.config/bot-army-shell/bot-army-ghostty-menu
+keybind = ctrl+b+M=run:~/.config/bot-army-shell/bot-army-ghostty-menu
+
+# Quick action key bindings
+keybind = ctrl+b+t=text:\x15bridge.task.current\n
+keybind = ctrl+b+c=text:\x15bridge.task.create\n
+keybind = ctrl+b+r=text:\x15bridge.reflection.record\n
+keybind = ctrl+b+p=text:\x15para.fs.search\n
+keybind = ctrl+b+s=text:\x15system.health.list\n
+
+# Context mode switching
+keybind = ctrl+b+f=text:\x15context.state.desired focused\n
+keybind = ctrl+b+m=text:\x15context.state.desired meeting\n
+keybind = ctrl+b+c=text:\x15context.state.desired casual\n
+keybind = ctrl+b+d=text:\x15context.state.desired DND\n
+
+# Status and info
+keybind = ctrl+b+h=run:cat ~/.config/bot-army-shell/bot-army-ghostty-help.txt
+keybind = ctrl+b+i=text:\x15bot_army_context_prompt\n
+
+# Direct NATS commands (for power users)
+keybind = ctrl+b+n=text:\x15nats\n
+keybind = ctrl+b+l=text:\x15logs tail -50 /var/log/bot_army/gtd.log\n

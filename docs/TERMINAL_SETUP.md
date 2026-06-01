@@ -12,12 +12,28 @@
 
 ## Ghostty (Recommended)
 
-Ghostty provides the cleanest integration via `title-command`:
+Ghostty provides the cleanest integration with two modes:
 
+### 1. Title Command (Context Display)
 ```ini
 # ~/.config/ghostty/config
 title-command = ~/.config/bot-army-shell/bot-army-context-title
 window-decoration = true
+```
+
+### 2. Menu Overlay (Quick Actions)
+Leader key system for Bot Army commands:
+```ini
+# ~/.config/ghostty/config
+# Leader key for Bot Army commands
+keybind = ctrl+b=ignore
+
+# Menu popup
+keybind = ctrl+b+M=run:~/.config/bot-army-shell/bot-army-ghostty-menu
+
+# Quick action bindings
+keybind = ctrl+b+T=text:\x15bridge.task.current\n
+keybind = ctrl+b+C=text:\x15bridge.task.create\n
 ```
 
 ## Zsh Integration
