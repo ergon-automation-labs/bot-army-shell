@@ -1,0 +1,25 @@
+# Go
+*.go
+*.sum
+go.mod
+go.sum
+
+# Build artifacts
+bot-army-context
+cmd/bot-army-context/bot-army-context
+
+# Socket file
+/tmp/bot-army-context.sock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+*.test

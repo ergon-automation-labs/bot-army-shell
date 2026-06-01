@@ -1,0 +1,6 @@
+#!/usr/bin/env zsh
+# Bot Army Context - Ghostty title command
+# Usage: title-command = ~/.config/bot-army-shell/bot-army-context-title
+
+source ~/.config/bot-army-shell/bot-army-context.zsh
+bot_army_context_title

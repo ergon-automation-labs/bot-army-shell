@@ -1,0 +1,27 @@
+[Unit]
+Description=Bot Army Context Daemon
+Documentation=https://github.com/ergon-automation-labs/bot-army-shell
+After=nats-server.service
+Wants=nats-server.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/bot-army-context
+Environment="NATS_SERVERS=localhost:4223"
+Environment="BOT_ARMY_CONTEXT_SOCKET=/tmp/bot-army-context.sock"
+Restart=on-failure
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/tmp
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bot-army-context
+
+[Install]
+WantedBy=default.target
