@@ -3,7 +3,7 @@
 
 SHELL := /bin/bash
 
-.PHONY: help install uninstall status test clean run-daemon stop-daemon
+.PHONY: help install uninstall status test clean run-daemon stop-daemon build-task-celebrations start-task-celebrations
 
 help:
 	@echo "Bot Army Shell - Terminal context awareness"
@@ -107,7 +107,17 @@ stop-daemon:
 		echo "[INFO] Daemon not running"; \
 	fi
 
+build-task-celebrations:
+	@echo "Building task celebrations notifier..."
+	@go build -o task-celebrations cmd/task-celebrations/main.go
+	@echo "Built: ./task-celebrations"
+
+start-task-celebrations:
+	@echo "Starting task celebrations notifier (listening to NATS 4222)..."
+	@NATS_URL=nats://localhost:4222 ./task-celebrations
+
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf cmd/bot-army-context/bot-army-context
+	@rm -f task-celebrations
 	@echo "Clean complete"
