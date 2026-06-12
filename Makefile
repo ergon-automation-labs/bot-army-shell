@@ -3,7 +3,7 @@
 
 SHELL := /bin/bash
 
-.PHONY: help install uninstall status test clean run-daemon stop-daemon build-task-celebrations start-task-celebrations
+.PHONY: help install uninstall status test clean run-daemon stop-daemon build-task-celebrations start-task-celebrations build-github-search
 
 help:
 	@echo "Bot Army Shell - Terminal context awareness"
@@ -115,6 +115,25 @@ build-task-celebrations:
 start-task-celebrations:
 	@echo "Starting task celebrations notifier (listening to NATS 4222)..."
 	@NATS_URL=nats://localhost:4222 ./task-celebrations
+
+build-github-search:
+	@echo "Building GitHub ingestor search CLI..."
+	@go build -o github-search cmd/github-search/main.go
+	@echo "Built: ./github-search"
+	@echo ""
+	@echo "Usage:"
+	@echo "  ./github-search search -q 'your-query'"
+	@echo "  ./github-search search -q 'query' -lang elixir"
+	@echo "  ./github-search stats"
+
+install-github-search: build-github-search
+	@echo "Installing GitHub search CLI to ~/.local/bin/"
+	@mkdir -p ~/.local/bin
+	@cp github-search ~/.local/bin/
+	@chmod +x ~/.local/bin/github-search
+	@echo "Installed: ~/.local/bin/github-search"
+	@echo ""
+	@echo "You can now use: github-search search -q 'query'"
 
 clean:
 	@echo "Cleaning build artifacts..."
